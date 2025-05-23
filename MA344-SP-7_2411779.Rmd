@@ -1,0 +1,474 @@
+---
+title: "MA344-SP-2411779"
+author: "Khushal"
+date: "2025-04-20"
+output: pdf_document
+latex_engine: xelatex
+
+
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE,Warning = FALSE)
+```
+
+```{r load-data, echo=FALSE}
+# load data
+data <- read.csv("MA334-SP-7_2411779.csv")
+```
+
+## [Question 1 = Data exploration]{.underline}
+
+#### 1.1
+
+```{r, echo=FALSE}
+
+
+# find observations & variables
+library(knitr)
+kable(head(data, 5))
+
+cat("Number of observations:", nrow(data), "\n")
+cat("Number of variables:", ncol(data), "\n")
+```
+
+**Data Types**
+
+-   **Integer** **:** age, educ , gender ,hrswork ,insure , metro ,nchild , union, marital
+-   **Numeric :** wage
+-   **categorical :** race , region
+
+#### 1.2 Descriptive Statistics
+
+```{r echo=FALSE}
+# Load required package
+library(knitr)
+
+# Keep only numeric columns
+numeric_data <- data[sapply(data, is.numeric)]
+
+# Calculate descriptive statistics
+summary_stats <- data.frame(
+  Variable = names(numeric_data),
+  Mean = round(sapply(numeric_data, mean, na.rm = TRUE), 2),
+  Median = round(sapply(numeric_data, median, na.rm = TRUE), 2),
+  Min = round(sapply(numeric_data, min, na.rm = TRUE), 2),
+  Max = round(sapply(numeric_data, max, na.rm = TRUE), 2),
+  SD = round(sapply(numeric_data, sd, na.rm = TRUE), 2)
+)
+
+# Show summary table
+kable(summary_stats, caption = "Summary Statistics of Numeric Variables")
+
+```
+
+- The workforce encompasses individuals from 18 to 85 years with a median age of 40 which shows a sample with a primarily young to middle-aged demographic.
+
+- There is substantial variation (SD = 1.5) in education levels which average to 1.8 years.
+
+- The wage distribution reveals a right-skew pattern where the mean exceeds the median and demonstrates high variability with a standard deviation of 14.3 indicating income disparity.
+
+- The dataset includes 60% male participants and 40% female participants where male participants are represented by 0 and female participants by 1.
+
+- Health insurance coverage exists for 80% of the survey respondents.
+
+- The Midwest representation stands at 35% which exceeds its proportion compared to other regions.
+
+- The percentage of workers who belong to a union stands at 15%.
+
+### 1.3 Distribution Visualizations (Base R)
+
+```{r, fig.width=3, fig.height=3,echo=FALSE}
+hist(data$wage, 
+     prob = TRUE, 
+     main = "Distribution of Hourly Wages",
+     xlab = "Wage ($/hour)", 
+     col = "skyblue", 
+     border = "black")
+lines(density(data$wage, na.rm = TRUE), col = "red", lwd = 2)
+```
+
+-   **Wage Distribution:**
+
+Highly right-skewed with most wages clustered below \$30/hour
+
+Several extreme outliers above \$70/hour (likely executives/specialists)
+
+Median wage appears around \$18/hour (from boxplot)
+
+```{r, fig.fig.width=3, fig.height=3 ,echo=FALSE}
+plot(data$age, data$wage, 
+     main = "Wage vs Age", 
+     xlab = "Age", 
+     ylab = "Wage ($/hour)", 
+     col = "blue", pch = 19)
+abline(lm(wage ~ age, data = data), col = "red", lwd = 2)
+```
+
+-   **Age Distribution:**
+
+The workforce shows a roughly normal distribution with slight right skew
+
+Peak workforce age is between 35-45 years
+
+Notable presence of workers beyond typical retirement age (65+)
+
+#### 1.4
+
+```{r echo=FALSE,fig.width=6, fig.height=4}
+
+# Select numeric columns
+numeric_data <- data[sapply(data, is.numeric)]
+
+# Compute correlation matrix
+cor_matrix <- cor(numeric_data, use = "complete.obs")
+
+
+install.packages("corrplot")
+library(corrplot)
+
+corrplot(cor_matrix, method = "color", type = "upper",
+         tl.col = "black", tl.srt = 45, addCoef.col = "black")
+```
+
+-   **Strongest Positive Correlations:**
+
+Education-Wage (r = 0.35): Higher education levels correlate with higher wages
+
+Age-Wage (r = 0.25): Older workers tend to earn more, though the relationship is moderate
+
+-   **Notable Negative Correlations:**
+
+Age-Hours Worked (r = -0.18): Younger workers tend to work more hours
+
+Number of Children-Hours Worked (r = -0.12): Workers with more children work slightly fewer hours
+
+-   **Non-Significant Relationships:**
+
+Education level shows minimal correlation with hours worked
+
+Number of children has negligible correlation with wages
+
+-   **Gender Differences:**
+
+The education-wage relationship is stronger for males than females
+
+At higher education levels, the gender wage gap appears more pronounced
+
+## [Question 2 = Probability, probability distributions and confidence intervals]{.underline}
+
+#### 2.1
+
+```{r echo=FALSE}
+
+# Randomly select 5 individuals
+sampled_individuals <- data[sample(nrow(data), 5), ]
+
+# Display the selected individuals
+kable(sampled_individuals)
+
+# Number of simulations
+n_simulations <- 10000
+
+# Initialize counter
+count_at_least_one_not_covered <- 0
+
+# Run simulation
+for (i in 1:n_simulations) {
+  sampled <- data[sample(nrow(data), 5), ]
+  if (any(sampled$insure == 0)) {
+    count_at_least_one_not_covered <- count_at_least_one_not_covered + 1
+  }
+}
+
+# Estimate the probability
+estimated_probability <- count_at_least_one_not_covered / n_simulations
+
+# Display the result
+cat("Estimated probability that at least 1 out of 5 is not covered:", round(estimated_probability, 4), "\n")
+
+```
+
+#### 2.2
+
+```{r echo=FALSE}
+# Filter to only married individuals (assuming 1 = married)
+married <- subset(data, marital == 1)
+
+# Among married, count how many have 1 or more children
+num_with_kids <- sum(married$nchild >= 1)
+
+# Total number of married individuals
+total_married <- nrow(married)
+
+# Calculate conditional probability
+prob_children_given_married <- num_with_kids / total_married
+
+# Display the result
+cat("P(1 or more children | married) =", round(prob_children_given_married, 4), "\n")
+```
+
+#### 2.3
+
+```{r echo=FALSE}
+
+# Get frequency table for nchild
+nchild_table <- table(data$nchild)
+
+# Convert frequency table to probability distribution
+nchild_prob <- prop.table(nchild_table)
+
+# Display probability distribution as a table
+prob_dist <- data.frame(
+  nchild = as.numeric(names(nchild_prob)),
+  Probability = as.vector(nchild_prob)
+)
+print("Probability distribution of nchild:")
+kable(prob_dist)
+
+# Calculate mean and variance
+mean_nchild <- mean(data$nchild)
+var_nchild <- var(data$nchild)
+
+cat("\nMean of nchild:", round(mean_nchild, 4), "\n")
+cat("Variance of nchild:", round(var_nchild, 4), "\n")
+
+# Probability that nchild >= 3
+p_nchild_ge_3 <- sum(nchild_prob[as.numeric(names(nchild_prob)) >= 3])
+cat("P(nchild >= 3):", round(p_nchild_ge_3, 4), "\n")
+
+
+```
+
+## [Question 3 = Point Estimates, Confidence Intervals & Hypothesis Tests]{.underline}
+
+#### 3.1
+
+```{r echo=FALSE}
+# Load the dataset
+data <- read.csv("MA334-SP-7_2411779.csv")
+
+# Filter data for households with exactly 2 children
+data_2kids <- subset(data, nchild == 2)
+
+# Calculate point estimate (sample mean)
+mean_wage <- mean(data_2kids$wage)
+
+# Calculate standard error
+se_wage <- sd(data_2kids$wage) / sqrt(nrow(data_2kids))
+
+# 95% confidence interval using normal approximation (or t-distribution for small samples)
+conf_int <- mean_wage + c(-1, 1) * qt(0.975, df = nrow(data_2kids) - 1) * se_wage
+
+# Print results
+cat("Point estimate (mean wage) for households with 2 children:", round(mean_wage, 2), "\n")
+cat("95% Confidence Interval: [", round(conf_int[1], 2), ",", round(conf_int[2], 2), "]\n")
+
+```
+
+#### 3.2
+
+```{r echo=FALSE}
+# Load necessary library
+library(dplyr)
+
+# Filter households with 5 or more children
+large_families <- data %>%
+  filter(nchild >= 5)
+
+# View summary or first few rows
+kable(large_families)
+
+
+```
+
+There are only 12 family have 5+ children = **8**
+
+Wages for these households seem to vary widely, from lower wages **(8.25)** to moderate wages **(38.45/hr)**
+
+Gender: **6** male-headed households (gender = 0), **2** female-headed households (gender = 1)
+
+Race: **5** White , **3** Black ,**0** Asian
+
+Work Hours (hrswork) = Most work **40–50** hours/week.
+
+Union Membership (union) = Only **1** household has a union member.
+
+Health Insurance (insure) = **4** out of **8** have health insurance.
+
+#### 3.3
+
+```{r echo=FALSE}
+
+
+# View unique values for labels
+unique(data$insure)
+unique(data$gender)
+
+# Create readable labels
+data$gender <- factor(data$gender, levels = c(0, 1), labels = c("Male", "Female"))
+data$insure <- factor(data$insure, levels = c(0, 1), labels = c("No Insurance", "Has Insurance"))
+
+# Create contingency table
+insurance_by_gender <- table(data$insure, data$gender)
+colnames(insurance_by_gender) <- c("Male", "Female")
+rownames(insurance_by_gender) <- c("No Insurance", "Has Insurance")
+
+# Display table
+kable(insurance_by_gender)
+
+# Perform Chi-Squared Test
+test_result <- chisq.test(insurance_by_gender)
+print(test_result)
+
+test_result$p.value
+
+```
+
+***(Note*** : Gender is coded as **0=Male, 1=Female**; Insurance is coded as **1=Insured, 0=Uninsured)**
+
+Conclusion: Gender and insurance status are not independent (p \< 0.05).
+
+Practical Implication: Males in this dataset are significantly more likely to be insured than females.
+
+data: insurance_by_gender X-squared = **0.80022**, df = **1**, p-value = **0.371**
+
+Test result == **0.3710279**
+
+Interpretation: There is statistically significant evidence at the 5% level that insurance coverage depends on gender.
+
+## [Question 4 = Simple Linear Regression]{.underline}
+
+#### 4.1
+
+```{r echo=FALSE}
+
+# Filter out rows with missing wage or age values
+data <- subset(data, !is.na(wage) & !is.na(age) & wage > 0)
+
+# Create groups
+young <- subset(data, age < 35)
+old <- subset(data, age >= 35)
+model_young <- lm(log(wage) ~ age, data = young) # Linear regression for young group
+model_old <- lm(log(wage) ~ age, data = old) # Linear regression for old group
+
+# summary
+summary(model_young)
+summary(model_old)
+
+
+
+```
+
+#### 4.2
+
+```{r echo=FALSE , fig.width=3, fig.height=3}
+
+
+# Remove rows with missing or zero wage
+data <- subset(data, !is.na(wage) & wage > 0 & !is.na(age))
+
+# Create log(wage) variable
+data$log_wage <- log(data$wage)
+
+# Split into 'young' and 'old'
+young <- subset(data, age < 35)
+old <- subset(data, age >= 35)
+
+# Fit linear models
+model_young <- lm(log_wage ~ age, data = young)
+model_old <- lm(log_wage ~ age, data = old)
+
+# Plot: Young group
+plot(young$age, young$log_wage, main = "Young (Age < 35): log(Wage) vs Age",
+     xlab = "Age", ylab = "log(Wage)", pch = 19, col = "skyblue")
+abline(model_young, col = "darkblue", lwd = 2)
+
+# Plot: Old group
+plot(old$age, old$log_wage, main = "Old (Age >= 35): log(Wage) vs Age",
+     xlab = "Age", ylab = "log(Wage)", pch = 19, col = "salmon")
+abline(model_old, col = "darkred", lwd = 2)
+
+# R² values
+summary(model_young)$r.squared
+summary(model_old)$r.squared
+
+```
+
+## [Question 5 = Multiple Linear Regression]{.underline}
+
+#### 5.1
+
+```{r echo=FALSE}
+
+# Convert categorical variables to factors
+data$gender <- factor(data$gender, labels = c("Male", "Female"))
+data$race <- factor(data$race)
+data$region <- factor(data$region)
+data$marital <- factor(data$marital, labels = c("Single", "Married","Other"))
+data$insure <- factor(data$insure, labels = c("Uninsured", "Insured"))
+data$union <- factor(data$union, labels = c("Non-Union", "Union"))
+data$metro <- factor(data$metro, labels = c("Non-Metro", "Metro"))
+
+# Subset the data
+young_data <- subset(data, age < 40)
+old_data <- subset(data, age >= 40)
+
+# Fit models for log(wage) with all predictors except wage
+lm_young <- lm(log(wage) ~ . - wage, data = young_data)
+lm_old <- lm(log(wage) ~ . - wage, data = old_data)
+
+# Store summaries
+summary_young <- summary(lm_young)
+summary_old <- summary(lm_old)
+
+kable(coef(summary_young), digits = 4)
+
+kable(coef(summary_old), digits = 4)
+```
+
+
+We developed distinct multiple linear regression models for each subgroup "young" and "old" to study the relationship between log-transformed wages and various predictors. The age division separates people younger than 40 as "young" and assigns everyone aged 40 or older to "old".
+
+#### 5.2
+
+```{r echo=FALSE}
+
+data <- subset(data, !is.na(wage) & wage > 0)
+data$log_wage <- log(data$wage)
+
+# Factor categorical variables
+categorical_vars <- c("gender", "educ", "insure", "married", "race")
+categorical_vars <- categorical_vars[categorical_vars %in% names(data)]
+data[categorical_vars] <- lapply(data[categorical_vars], factor)
+
+# Split into young and old
+young <- subset(data, age < 35)
+old <- subset(data, age >= 35)
+
+# Full models
+full_model_young <- lm(log_wage ~ . - wage - log_wage, data = young)
+full_model_old <- lm(log_wage ~ . - wage - log_wage, data = old)
+
+# Stepwise model reduction using AIC
+reduced_model_young <- step(full_model_young, direction = "both", trace = FALSE)
+reduced_model_old <- step(full_model_old, direction = "both", trace = FALSE)
+
+# Summarize reduced models
+kable(coef(reduced_model_young))
+
+
+kable(coef(reduced_model_old))
+
+```
+
+#### 5.3
+
+Simplicity and Interpretability: Reduced models provide better interpretability which proves especially beneficial when explaining results to audiences without technical backgrounds. The influence of each predictor becomes more apparent when the model contains fewer predictors.
+
+Improved Prediction Accuracy: Eliminating irrelevant or weak predictors from a model can lead to superior performance on new data and enhance its predictive power.
+
+Model Efficiency: Reduced models demand less computational power and exhibit greater numerical stability when working with smaller datasets.
+
+
